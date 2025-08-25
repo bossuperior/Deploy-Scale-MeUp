@@ -17,6 +17,14 @@ Resources:
       VpcId: !Ref ClusterVPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ClusterVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
   InternetGateway:
     Type: AWS::EC2::InternetGateway
   VPCGatewayAttachment:
@@ -38,6 +46,11 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref RouteTable
 
 ###########
@@ -61,6 +74,7 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
       ContainerDefinitions:
         - Name: my-web-app-container
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/my-web-app-repo:latest
@@ -79,6 +93,7 @@ Resources:
         AwsvpcConfiguration:
           Subnets:
             - !Ref PublicSubnet
+            - !Ref PublicSubnet2
           AssignPublicIp: ENABLED
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -126,6 +141,7 @@ Resources:
     Properties:
       Subnets:
         - !Ref PublicSubnet
+        - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
   ALBSecurityGroup:
@@ -161,7 +177,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: my-web-static-site
-      AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
@@ -171,6 +186,14 @@ Resources:
             AllowedMethods: ['GET']
             AllowedOrigins: ['*']
             MaxAge: 3000
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
