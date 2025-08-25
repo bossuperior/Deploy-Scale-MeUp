@@ -4,20 +4,25 @@ on:
   push:
     branches: [main, dev]
 
+permissions:
+  id-token: write  # Required for requesting the JWT from GitHub OIDC
+  contents: read   # Required for actions/checkout    
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       # Checkout code จาก repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # ตั้งค่า AWS Credentials ด้วย OIDC
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ***
+          audience: sts.amazonaws.com
 
       # Login ไป Amazon ECR
       - name: Login to Amazon ECR
