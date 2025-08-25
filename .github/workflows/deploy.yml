@@ -57,5 +57,4 @@ jobs:
           service: my-web-app-service-test
           cluster: my-web-ecs-cluster-test
           wait-for-service-stability: true
-          aws-region: ap-southeast-1
   
