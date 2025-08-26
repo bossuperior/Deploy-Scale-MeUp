@@ -2,7 +2,11 @@ on:
   push:
     branches:
       - dev
-
+      
+permissions:
+  id-token: write
+  contents: read
+  
 env:
   ECR_REPOSITORY: my-web-app-repo
   EKS_CLUSTER_NAME: eks-cluster 
@@ -11,15 +15,11 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
         
       - name: Configure AWS Credentials
-        permissions:
-          id-token: write
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/git-actions-role
