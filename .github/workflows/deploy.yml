@@ -23,7 +23,7 @@ jobs:
 
       - name: Build, tag, and push docker image to Amazon ECR
         run: |
-          (Get-ECRLoginCommand).Password | docker login --username AWS --password-stdin public.ecr.aws/o4v6k8p8
+          docker login --username AWS --password-stdin public.ecr.aws/o4v6k8p8
           docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
           docker tag my-scaleup-repo:latest ${{ secrets.ECR_REPOSITORY }}:latest
           docker push ${{ secrets.ECR_REPOSITORY }}:latest
