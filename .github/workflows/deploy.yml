@@ -41,7 +41,7 @@ jobs:
           task-definition: config/task-definition.json
           container-name: my-web-app-container
           image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com/my-web-app-repo:${{ github.sha }}
-          execution-role-arn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ECSTaskExecutionRole 
+          #execution-role-arn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ECSTaskExecutionRole 
           #CloudwatchLog
           log-configuration-log-driver: awslogs
           log-configuration-options: |
