@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-web-app-service
+  namespace: default
+spec:
+  selector:
+    app: my-web-app
+  ports:
+  - protocol: TCP
+    port: 80        # พอร์ตที่ Service เปิดให้ภายนอก (สามารถคงไว้หรือเปลี่ยน)
+    targetPort: 3000 # เปลี่ยนเป็น 3000 เพื่อให้ตรงกับพอร์ตที่ Next.js รัน
+  type: ClusterIP

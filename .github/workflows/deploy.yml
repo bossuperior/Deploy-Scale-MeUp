@@ -2,23 +2,28 @@ on:
   push:
     branches:
       - dev
-      
-permissions:
-  id-token: write
-  contents: read
-  
+
+env:
+  ECR_REPOSITORY: my-web-app-repo
+  EKS_CLUSTER_NAME: eks-cluster 
+  AWS_REGION: ap-southeast-1
+       
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
         
       - name: Configure AWS Credentials
+        permissions:
+          id-token: write
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/git-actions-role
-          aws-region: ap-southeast-1
+          aws-region: ${{env.AWS_REGION}}
           audience: sts.amazonaws.com
       
       - name: Login to Amazon ECR Private
@@ -28,33 +33,20 @@ jobs:
       - name: Build, tag, and push docker image to Amazon ECR
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: my-web-app-repo
-          IMAGE_TAG: ${{ github.sha }}
+          REPOSITORY: ${{env.ECR_REPOSITORY}}
+          IMAGE_TAG: ${{ github.sha }}-$(date +%Y%m%d%H%M%S)
         run: |
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
-      - name: Render Amazon ECS task definition
-        id: render-task-definition
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: config/task-definition.json
-          container-name: my-web-app-container
-          image: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com/my-web-app-repo:${{ github.sha }}
-          #execution-role-arn: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ECSTaskExecutionRole 
-          #CloudwatchLog
-          log-configuration-log-driver: awslogs
-          log-configuration-options: |
-            awslogs-create-group=true
-            awslogs-group=/ecs/my-web-app
-            awslogs-region=ap-southeast-1
-            awslogs-stream-prefix=ecs
-          
-      - name: Deploy to Amazon ECS service
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
-          service: my-web-app-service-test
-          cluster: my-web-ecs-cluster-test
-          wait-for-service-stability: true
-  
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+      
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
+          IMAGE_TAG: ${{ steps.commit.outputs.short }}
+        run: |
+          sed -i.bak "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" manifests/my-web-app-deployment.yaml && \
+          kubectl apply -f manifests/my-web-app-deployment.yaml
+          kubectl apply -f manifests/my-web-app-service.yaml
