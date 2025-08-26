@@ -23,9 +23,8 @@ jobs:
 
       - name: Build, tag, and push docker image to Amazon ECR
         run: |
-          aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin public.ecr.aws/o4v6k8p8
           docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
-          docker tag my-scaleup-repo:latest ${{ secrets.ECR_REPOSITORY }}:latest
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
           docker push ${{ secrets.ECR_REPOSITORY }}:latest
 
           
