@@ -31,7 +31,7 @@ jobs:
       - name: ECS Task Update 
         run: |
           aws ecs update-service \
-            --cluster my-node-cluster \
+            --cluster scaleup-node-cluster \
             --service my-node-task-service \
             --force-new-deployment \
             --region ${{ secrets.AWS_REGION }}
