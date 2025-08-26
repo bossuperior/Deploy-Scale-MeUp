@@ -1,52 +1,38 @@
+name: Deploy to AWS ECS 
+
 on:
   push:
-    branches:
-      - dev
+    branches: [main ,dev]
       
 permissions:
   id-token: write
   contents: read
   
-env:
-  ECR_REPOSITORY: my-web-app-repo
-  EKS_CLUSTER_NAME: eks-cluster 
-  AWS_REGION: ap-southeast-1
-       
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/git-actions-role
-          aws-region: ${{env.AWS_REGION}}
-          audience: sts.amazonaws.com
-      
-      - name: Login to Amazon ECR Private
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Build, tag, and push docker image to Amazon ECR
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{env.ECR_REPOSITORY}}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
+          aws ecr get-login-password | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+          docker push ${{ secrets.ECR_REPOSITORY }}:latest
 
-      - name: Update kube config
-        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-      
-      - name: Deploy to EKS
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}        
-          IMAGE_TAG: ${{ steps.commit.outputs.short }}
+          
+      - name: ECS Task Update 
         run: |
-          sed -i.bak "s|DOCKER_IMAGE|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" manifests/my-web-app-deployment.yaml && \
-          kubectl apply -f manifests/my-web-app-deployment.yaml
-          kubectl apply -f manifests/my-web-app-service.yaml
+          aws ecs update-service \
+            --cluster my-node-cluster \
+            --service my-node-task-service \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
+  
