@@ -29,8 +29,8 @@ jobs:
 
       - name: Export Docker image to tar and upload to S3
         run: |
-          docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/amazonlinux:latest
-          docker save ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/amazonlinux:latest | gzip | aws s3 cp - s3://my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }}/my-node-app-latest.tar.gz
+          docker pull ${{ secrets.ECR_REPOSITORY }}:latest
+          docker save ${{ secrets.ECR_REPOSITORY }}:latest | gzip | aws s3 cp - s3://my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }}/my-node-app-latest.tar.gz
 
       - name: Generate Dockerrun.aws.json
         run: |
