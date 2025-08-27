@@ -1,81 +1,29 @@
-name: Deploy to AWS Elastic Beanstalk
+name: Deploy to AWS ECS 
 
 on:
   push:
-    branches: [main, dev]
-
+    branches: [main ,dev]
+      
 permissions:
   id-token: write
   contents: read
-
+  
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
+        
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/git-actions-role
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Build, tag, and push Docker image to Amazon ECR
+      - name: Build, tag, and push docker image to Amazon ECR
         run: |
           docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
           docker push ${{ secrets.ECR_REPOSITORY }}:latest
-
-      - name: Export Docker image to tar and upload to S3
-        run: |
-          docker pull ${{ secrets.ECR_REPOSITORY }}:latest
-          docker save ${{ secrets.ECR_REPOSITORY }}:latest | gzip | aws s3 cp - s3://my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }}/my-node-app-latest.tar.gz
-
-      - name: Generate Dockerrun.aws.json
-        run: |
-          cat > Dockerrun.aws.json << EOF
-          {
-            "AWSEBDockerrunVersion": "1",
-            "Image": {
-              "Name": "${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest",
-              "Update": "true"
-            },
-            "Ports": [
-              {
-                "ContainerPort": 3000,
-                "HostPort": 80
-              }
-            ],
-            "Environment": [
-              {
-                "Name": "DB_HOST",
-                "Value": "${{ secrets.DB_HOST }}"
-              },
-              {
-                "Name": "DB_USER",
-                "Value": "${{ secrets.DB_USER }}"
-              },
-              {
-                "Name": "DB_PASSWORD",
-                "Value": "${{ secrets.DB_PASSWORD }}"
-              }
-            ]
-          }
-          EOF
-          zip dockerrun.zip Dockerrun.aws.json
-          aws s3 cp dockerrun.zip s3://my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }}/dockerrun.zip
-
-      - name: Deploy to Elastic Beanstalk
-        run: |
-          VERSION_LABEL=v${{ github.run_number }}-$(date +%s)-${{ github.sha }}
-          aws elasticbeanstalk create-application-version \
-            --application-name my-node-app \
-            --version-label $VERSION_LABEL \
-            --source-bundle S3Bucket=my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }},S3Key=dockerrun.zip \
-            --region ${{ secrets.AWS_REGION }} || exit 1
-          aws elasticbeanstalk update-environment \
-            --application-name my-node-app \
-            --environment-name my-node-env \
-            --version-label $VERSION_LABEL \
-            --region ${{ secrets.AWS_REGION }} || exit 1
+  
