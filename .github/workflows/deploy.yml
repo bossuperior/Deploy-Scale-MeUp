@@ -68,13 +68,14 @@ jobs:
 
       - name: Deploy to Elastic Beanstalk
         run: |
+          VERSION_LABEL=v${{ github.run_number }}-$(date +%s)-${{ github.sha }}
           aws elasticbeanstalk create-application-version \
             --application-name my-node-app \
-            --version-label v${{ github.run_number }}-${{ github.sha }} \
+            --version-label $VERSION_LABEL \
             --source-bundle S3Bucket=my-node-app-artifacts-${{ secrets.AWS_ACCOUNT_ID }},S3Key=dockerrun.zip \
             --region ${{ secrets.AWS_REGION }} || exit 1
           aws elasticbeanstalk update-environment \
             --application-name my-node-app \
             --environment-name my-node-env \
-            --version-label v${{ github.run_number }}-${{ github.sha }} \
+            --version-label $VERSION_LABEL \
             --region ${{ secrets.AWS_REGION }} || exit 1
