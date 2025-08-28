@@ -2,10 +2,7 @@
 
 โปรเจกต์นี้ใช้ AWS ในการ Deploy ระบบที่มีความสามารถในการขยายขนาดอัตโนมัติ โดยใช้ ECR, EC2,และ Auto Scaling Groups + Dynamic scaling policy ในการทำ Step Scaling เพิ่มลดขนาดของ Instance โดยอัตโนมัติ
 
-```shell
-npm install
-npm run dev
-```
+
 
 ## สารบัญ
 - [Contributing](#contributing)
