@@ -47,7 +47,7 @@ npm run dev
 
 ## Load test
 #### ภาพ 5: หน้าเว็บที่ใช้ในการทดสอบโหลด
-ภาพนี้แสดง หน้าเว็บที่ใช้ในการทดสอบโหลด โดยเป็นหน้าเว็บไซต์ที่ใช้อัพโหลดภาพรองรับการ CRUD ผ่าน Mongo DB Cloud โดยลิงก์ที่ใช้ทดสอบหน้าเว็บนี้คือ http://scalemeup-node-alb-609231817.ap-southeast-1.elb.amazonaws.com เป็นลิงก์ที่สร้างจาก AWS Load Balancer
+ภาพนี้แสดง หน้าเว็บที่ใช้ในการทดสอบโหลด โดยเป็นหน้าเว็บไซต์ที่ใช้อัพโหลดภาพรองรับการ CRUD ผ่าน Mongo DB Cloud โดยลิงก์ที่ใช้ทดสอบหน้าเว็บนี้คือ http://scalemeup-node-alb-609231817.ap-southeast-1.elb.amazonaws.com เป็นลิงก์ที่สร้างจาก Application Load Balancer บน AWS
 
 <img width="1901" height="964" alt="image" src="https://github.com/user-attachments/assets/048fd721-3af7-4990-ba07-be7c56acf141" />
 
