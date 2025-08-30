@@ -1,89 +1,30 @@
-name: Deploy to ECS
+name: Deploy to AWS ECR 
 
 on:
   push:
-    branches:
-        - main
-
+    branches: [main ,dev]
+      
 permissions:
-  id-token: write  # Required for requesting the JWT from GitHub OIDC
-  contents: read   # Required for actions/checkout    
-
+  id-token: write
+  contents: read
+  
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      # Checkout code จาก repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # ตั้งค่า AWS Credentials ด้วย OIDC
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-role
-          aws-region: ap-southeast-1
-          audience: sts.amazonaws.com
-          unset-current-credentials: true
-      - name: Generate Task Definition
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/git-actions-role
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build, tag, and push docker image to Amazon ECR
         run: |
-          cat > task-definition.json <<EOF
-          {
-            "family": "my-web-app-task",
-            "cpu": "256",
-            "memory": "512",
-            "networkMode": "awsvpc",
-            "requiresCompatibilities": ["FARGATE"],
-            "executionRoleArn": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/ECSTaskExecutionRole",
-            "containerDefinitions": [
-              {
-                "name": "my-web-app-container",
-                "image": "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-web-app-repo:${{ github.sha }}",
-                "portMappings": [
-                  {
-                    "containerPort": 3000,
-                    "protocol": "tcp"
-                  }
-                ],
-                "essential": true,
-                "logConfiguration": {
-                  "logDriver": "awslogs",
-                  "options": {
-                    "awslogs-group": "/ecs/my-web-app",
-                    "awslogs-region": "${{ secrets.AWS_REGION }}",
-                    "awslogs-stream-prefix": "ecs"
-                  }
-                }
-              }
-            ]
-          }
-          EOF
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-
-      - name: Register Task Definition
-        run: aws ecs register-task-definition --cli-input-json file://config/task-definition.json
-
-      # Login ไป Amazon ECR
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      # Build และ Push Docker Image ไป ECR
-      - name: Build, tag, and push image to ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: my-web-app-repo
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      # อัปเดต ECS Task Definition ด้วย Image ล่าสุด
-      - name: Update ECS Task Definition
-        run: |
-          aws ecs register-task-definition --cli-input-json file://config/task-definition.json
-          aws ecs update-service --cluster my-web-ecs-cluster --service my-web-app-service --task-definition $(aws ecs describe-task-definitions --family my-web-app-task --sort DESC --query 'taskDefinitionArns[0]' --output text) --force-new-deployment
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+          docker push ${{ secrets.ECR_REPOSITORY }}:latest
+  
+  
